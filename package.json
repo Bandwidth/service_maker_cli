@@ -1,0 +1,21 @@
+{
+  "name": "service_maker_cli",
+  "version": "0.1.0",
+  "description": "Command-line client for the Service Maker service.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:bandwidthcom/service_maker_cli.git"
+  },
+  "author": "Jeff Jagoda <jjagoda@bandwidth.com>",
+  "license": "Proprietary",
+  "bugs": {
+    "url": "https://github.com/bandwidthcom/service_maker_cli/issues"
+  },
+  "homepage": "https://github.com/bandwidthcom/service_maker_cli",
+  "publishConfig" : {
+    "registry": "https://npm.bwrnd.com"
+  }
+}
