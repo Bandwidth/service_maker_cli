@@ -12,6 +12,20 @@ describe("A Service Maker client", function () {
 
   const BASIC_AUTH = "Basic " + (new Buffer(USERNAME + ":" + PASSWORD)).toString("base64");
 
+  function* expectFailure (message, generator) {
+    let failure;
+
+    try {
+      yield generator;
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure, "no error").to.exist;
+    expect(failure, "error type").to.be.an.instanceOf(Error);
+    expect(failure.message, "error message").to.match(message);
+  }
+
   before(function () {
     nock.disableNetConnect();
   });
@@ -38,6 +52,18 @@ describe("A Service Maker client", function () {
 
     after(function () {
       nock.cleanAll();
+    });
+
+    describe("manually logging in", function () {
+      let token;
+
+      before(function* () {
+        token = yield client.login();
+      });
+
+      it("returns an access token", function () {
+        expect(token, "wrong token").to.equal(ACCESS_TOKEN);
+      });
     });
 
     describe("listing all available service types", function () {
@@ -87,15 +113,16 @@ describe("A Service Maker client", function () {
       nock.cleanAll();
     });
 
+    it("fails to manually login", function* () {
+      yield expectFailure(/invalid credentials/i, function* () {
+        yield client.login();
+      });
+    });
+
     it("fails to list the available service types", function* () {
-      try {
+      yield expectFailure(/invalid credentials/i, function* () {
         yield client.serviceTypes.describe();
-        throw new Error("Failed");
-      }
-      catch (error) {
-        expect(error, "error type").to.be.an.instanceOf(Error);
-        expect(error.message, "error message").to.match(/invalid credentials/i);
-      }
+      });
     });
   });
 
@@ -119,14 +146,9 @@ describe("A Service Maker client", function () {
     it("fails to list the available service types", function* () {
       request = request.get("/serviceTypes").reply(403);
 
-      try {
+      yield expectFailure(/invalid access token/i, function* () {
         yield client.serviceTypes.describe();
-        throw new Error("Failed");
-      }
-      catch (error) {
-        expect(error, "error type").to.be.an.instanceOf(Error);
-        expect(error.message, "error message").to.match(/invalid access token/i);
-      }
+      });
     });
   });
 });
