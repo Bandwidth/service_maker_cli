@@ -4,7 +4,7 @@
   "description": "Command-line client for the Service Maker service.",
   "main": "lib/ServiceMaker",
   "scripts": {
-    "test": "node --harmony gulpfile.js"
+    "test": "NODE_ENV=test node --harmony gulpfile.js"
   },
   "repository": {
     "type": "git",
@@ -26,12 +26,19 @@
     "gulp-jshint": "^1.6.3",
     "gulp-mocha": "^0.4.1",
     "jshint-stylish": "^0.2.0",
+    "koa": "^0.8.0",
+    "koa-basic-auth": "^1.1.1",
+    "koa-router": "^3.1.4",
     "mocha": "^1.20.1",
     "nock": "^0.36.2"
   },
   "dependencies": {
+    "co": "^3.0.6",
+    "commander": "^2.2.0",
+    "debug": "^1.0.2",
     "lodash": "^2.4.1",
     "q": "^1.0.1",
+    "read": "^1.0.5",
     "superagent": "^0.18.0"
   }
 }

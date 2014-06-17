@@ -31,6 +31,18 @@ describe("A client configuration", function () {
       });
     });
 
+    describe("reading an existing key with a default value", function () {
+      let value;
+
+      beforeEach(function () {
+        value = config.get("key", "default");
+      });
+
+      it("returns the key value", function () {
+        expect(value, "value").to.equal("value");
+      });
+    });
+
     describe("reading a non-existant key", function () {
       let value;
 
@@ -40,6 +52,18 @@ describe("A client configuration", function () {
 
       it("returns 'undefined'", function () {
         expect(value, "value").to.be.undefined;
+      });
+    });
+
+    describe("reading a non-existant key with a default value", function () {
+      let value;
+
+      beforeEach(function () {
+        value = config.get("foo", "bar");
+      });
+
+      it("returns the default value", function () {
+        expect(value, "value").to.equal("bar");
       });
     });
 
