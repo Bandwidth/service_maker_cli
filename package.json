@@ -2,8 +2,9 @@
   "name": "service_maker_cli",
   "version": "0.1.0",
   "description": "Command-line client for the Service Maker service.",
+  "main": "lib/ServiceMaker",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --harmony gulpfile.js"
   },
   "repository": {
     "type": "git",
@@ -15,7 +16,22 @@
     "url": "https://github.com/bandwidthcom/service_maker_cli/issues"
   },
   "homepage": "https://github.com/bandwidthcom/service_maker_cli",
-  "publishConfig" : {
+  "publishConfig": {
     "registry": "https://npm.bwrnd.com"
+  },
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "co-mocha": "0.0.4",
+    "gulp": "^3.8.0",
+    "gulp-jshint": "^1.6.3",
+    "gulp-mocha": "^0.4.1",
+    "jshint-stylish": "^0.2.0",
+    "mocha": "^1.20.1",
+    "nock": "^0.36.2"
+  },
+  "dependencies": {
+    "lodash": "^2.4.1",
+    "q": "^1.0.1",
+    "superagent": "^0.18.0"
   }
 }
