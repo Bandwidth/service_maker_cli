@@ -94,4 +94,15 @@ program
   .description("List the available service types.")
   .action(listTypes);
 
+program.on("*", function (command) {
+  console.error("Unknown command '%s'.", command);
+  program.outputHelp();
+  process.exit(1);
+});
+
 program.parse(process.argv);
+
+if (program.args.length < 1) {
+  program.outputHelp();
+  process.exit(1);
+}

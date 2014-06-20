@@ -71,6 +71,8 @@ module.exports = {
   },
 
   run : function* (options) {
+    options = options || {};
+
     let deferred = q.defer();
     let node     = process.execPath;
     let nodeArgs = process.execArgv.concat(client, options.arguments);

@@ -6,6 +6,38 @@ let helper = require("./helper");
 
 describe("The command line client", function () {
 
+  describe("given an unknow command", function () {
+    let result;
+
+    before(function* () {
+      result = yield helper.run({ arguments : "foo" });
+    });
+
+    it("exits with a non-zero status code", function () {
+      expect(result.status, "exit code").not.to.equal(0);
+    });
+
+    it("displays an error message", function () {
+      expect(result.output(), "error message").to.match(/unknown command/i);
+    });
+  });
+
+  describe("given no command", function () {
+    let result;
+
+    before(function* () {
+      result = yield helper.run();
+    });
+
+    it("exits with a non-zero status code", function () {
+      expect(result.status, "exit code").not.to.equal(0);
+    });
+
+    it("displays the usage information", function () {
+      expect(result.output(), "usage message").to.match(/usage:/i);
+    });
+  });
+
   describe("logging in", function () {
     let server;
 
