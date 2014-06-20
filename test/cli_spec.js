@@ -96,17 +96,84 @@ describe("The command line client", function () {
 
   describe("when authenticated", function () {
     describe("listing the available service types", function () {
-      it("prints a list of service types");
+      let server;
+      let result;
+      let restore;
 
-      it("exits with a zero status code");
+      before(function* () {
+        server = helper.createServer();
+        server.get("/serviceTypes", function* () {
+          this.body = [
+            { type : "demo" },
+            { type : "host" },
+            { type : "mail" }
+          ];
+
+          this.status = 200;
+        });
+
+        yield server.start();
+        restore = helper.configure({ token : "atoken", url : server.url });
+
+        result = yield helper.run({ arguments : "types" });
+      });
+
+      after(function* () {
+        yield server.stop();
+        restore();
+      });
+
+      it("prints a list of service types", function () {
+        let output = result.output();
+
+        expect(output, "header").to.match(/available service types/i);
+        expect(output, "demo").to.match(/demo/);
+        expect(output, "host").to.match(/host/);
+        expect(output, "mail").to.match(/mail/);
+      });
+
+      it("exits with a zero status code", function () {
+        expect(result, "exit status").to.have.property("status", 0);
+      });
     });
   });
 
   describe("when not authenticated", function () {
-    describe("listing the available service types", function () {
-      it("prints a failure message");
+    let restore;
+    let server;
 
-      it("exits with a non-zero status code");
+    before(function* () {
+      server = helper.createServer();
+      server.use(function* () {
+        this.status = 403;
+      });
+
+      yield server.start();
+      restore = helper.configure({ token : "atoken", url : server.url });
+    });
+
+    after(function* () {
+      yield server.stop();
+      restore();
+    });
+
+    describe("listing the available service types", function () {
+      let result;
+
+      before(function* () {
+        result = yield helper.run({ arguments : "types" });
+      });
+
+      it("prints a failure message", function () {
+        let output = result.output();
+
+        expect(output, "authentication message").to.match(/unauthorized/i);
+        expect(output, "suggestion message").to.match(/maybe try `service-maker login`/);
+      });
+
+      it("exits with a non-zero status code", function () {
+        expect(result.status, "exit status").not.to.equal(0);
+      });
     });
   });
 });
