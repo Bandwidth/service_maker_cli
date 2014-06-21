@@ -12,6 +12,9 @@ describe("A Service Maker client", function () {
 
   const BASIC_AUTH = "Basic " + (new Buffer(USERNAME + ":" + PASSWORD)).toString("base64");
 
+  const INVALID_ACCESS_TOKEN = /invalid access token/i;
+  const INVALID_CREDENTIALS  = /invalid credentials/i;
+
   function* expectFailure (message, generator) {
     let failure;
 
@@ -91,6 +94,39 @@ describe("A Service Maker client", function () {
         expect(types, "service type list").to.have.members([ "demo", "host", "mail" ]);
       });
     });
+
+    describe("listing the available services", function () {
+      let services = [
+        {
+          type : "demo",
+          data : {
+            url : "http://example.com"
+          }
+        },
+        {
+          type : "mail",
+          data : {
+            domain : "example.com"
+          }
+        }
+      ];
+
+      let result;
+
+      before(function* () {
+        let request = nock(BASE_URL)
+        .matchHeader("Authorization", AUTHORIZATION)
+        .get("/services")
+        .reply(200, services);
+
+        result = yield client.services.describe();
+        request.done();
+      });
+
+      it("returns a list of services", function () {
+        expect(result, "service list").to.deep.equal(services);
+      });
+    });
   });
 
   describe("with invalid basic credentials", function () {
@@ -114,14 +150,20 @@ describe("A Service Maker client", function () {
     });
 
     it("fails to manually login", function* () {
-      yield expectFailure(/invalid credentials/i, function* () {
+      yield expectFailure(INVALID_CREDENTIALS, function* () {
         yield client.login();
       });
     });
 
     it("fails to list the available service types", function* () {
-      yield expectFailure(/invalid credentials/i, function* () {
+      yield expectFailure(INVALID_CREDENTIALS, function* () {
         yield client.serviceTypes.describe();
+      });
+    });
+
+    it("fails to list the available services", function* () {
+      yield expectFailure(INVALID_CREDENTIALS, function* () {
+        yield client.services.describe();
       });
     });
   });
@@ -146,8 +188,16 @@ describe("A Service Maker client", function () {
     it("fails to list the available service types", function* () {
       request = request.get("/serviceTypes").reply(403);
 
-      yield expectFailure(/invalid access token/i, function* () {
+      yield expectFailure(INVALID_ACCESS_TOKEN, function* () {
         yield client.serviceTypes.describe();
+      });
+    });
+
+    it("fails to list the available services", function* () {
+      request = request.get("/services").reply(403);
+
+      yield expectFailure(INVALID_ACCESS_TOKEN, function* () {
+        yield client.services.describe();
       });
     });
   });
