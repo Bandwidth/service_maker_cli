@@ -127,6 +127,7 @@ describe("The command line client", function () {
   });
 
   describe("when authenticated", function () {
+
     describe("listing the available service types", function () {
       let server;
       let result;
@@ -158,7 +159,7 @@ describe("The command line client", function () {
       it("prints a list of service types", function () {
         let output = result.output();
 
-        expect(output, "header").to.match(/available service types/i);
+        expect(output, "header").to.match(/service types/i);
         expect(output, "demo").to.match(/demo/);
         expect(output, "host").to.match(/host/);
         expect(output, "mail").to.match(/mail/);
@@ -168,9 +169,62 @@ describe("The command line client", function () {
         expect(result, "exit status").to.have.property("status", 0);
       });
     });
+
+    describe("listing the available services", function () {
+      let restore;
+      let result;
+      let server;
+
+      before(function* () {
+        server = helper.createServer();
+        server.get("/services", function* () {
+          this.status = 200;
+          this.body = [
+            {
+              type : "demo",
+              data : {
+                url : "http://example.com"
+              }
+            },
+            {
+              type : "mail",
+              data : {
+                domain : "example.com"
+              }
+            }
+          ];
+        });
+
+        yield server.start();
+        restore = helper.configure({ token : "atoken", url : server.url });
+        result  = yield helper.run({ arguments : "services" });
+      });
+
+      after(function* () {
+        yield server.stop();
+        restore();
+      });
+
+      it("prints a list of services", function () {
+        let output = result.output();
+
+        expect(output, "header").to.match(/services/i);
+        expect(output, "demo service").to.match(/demo/);
+        expect(output, "demo service").not.to.match(/url/);
+        expect(output, "mail service").to.match(/mail/);
+        expect(output, "mail service").not.to.match(/domain/);
+      });
+
+      it("exits with a zero status code", function () {
+        expect(result, "exit status").to.have.property("status", 0);
+      });
+    });
   });
 
   describe("when not authenticated", function () {
+    const SUGGESTION   = /maybe try `service-maker login`/;
+    const UNAUTHORIZED = /unauthorized/i;
+
     let restore;
     let server;
 
@@ -199,8 +253,27 @@ describe("The command line client", function () {
       it("prints a failure message", function () {
         let output = result.output();
 
-        expect(output, "authentication message").to.match(/unauthorized/i);
-        expect(output, "suggestion message").to.match(/maybe try `service-maker login`/);
+        expect(output, "authentication message").to.match(UNAUTHORIZED);
+        expect(output, "suggestion message").to.match(SUGGESTION);
+      });
+
+      it("exits with a non-zero status code", function () {
+        expect(result.status, "exit status").not.to.equal(0);
+      });
+    });
+
+    describe("listing the available services" ,function () {
+      let result;
+
+      before(function* () {
+        result = yield helper.run({ arguments : "services" });
+      });
+
+      it("prints a failure message", function () {
+        let output = result.output();
+
+        expect(output, "authentication message").to.match(UNAUTHORIZED);
+        expect(output, "suggestion message").to.match(SUGGESTION);
       });
 
       it("exits with a non-zero status code", function () {
