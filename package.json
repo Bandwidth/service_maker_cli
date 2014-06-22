@@ -33,6 +33,7 @@
     "nock": "^0.36.2"
   },
   "dependencies": {
+    "cli-table": "^0.3.0",
     "co": "^3.0.6",
     "commander": "^2.2.0",
     "debug": "^1.0.2",

@@ -6,6 +6,7 @@ let path         = require("path");
 let program      = require("commander");
 let read         = require("read");
 let ServiceMaker = require("../lib/ServiceMaker");
+let Table        = require("cli-table");
 let _            = require("lodash");
 
 const CONFIG_FILE = path.join(process.env.HOME, ".service_maker");
@@ -13,15 +14,29 @@ const DEFAULT_URL = "https://dev-servicemaker.bwrnd.com";
 
 let config = new Config(CONFIG_FILE);
 
-function printList (header, list) {
-  console.log("\n%s:", header);
-  console.log((new Array(header.length + 2)).join("="));
+function createClient () {
+  let token = config.get("token");
+  let url   = config.get("url", DEFAULT_URL);
 
-  _.each(list, function (item) {
-    console.log(" * %s", item);
-  });
+  return new ServiceMaker({ token : token, url : url });
+}
 
-  console.log();
+function handleError (error) {
+  let message = error.message;
+
+  if (message.match(/invalid access token/i)) {
+    console.error("Unauthorized: maybe try `service-maker login`?");
+    process.exit(1);
+  }
+}
+
+function printTable () {
+  let headers = Array.prototype.slice.call(arguments);
+  let rows    = headers.pop();
+  let table   = new Table({ head : headers });
+
+  _.each(rows, function (row) { table.push(row); });
+  console.log(table.toString());
 }
 
 function* prompt (message, silent) {
@@ -41,22 +56,35 @@ prompt.password = function* (message) {
   return yield prompt(message, true);
 };
 
-let listTypes = co(function* () {
-  let token  = config.get("token");
-  let url    = config.get("url", DEFAULT_URL);
+let listServices = co(function* () {
+  let client = createClient();
+  let services;
 
-  let client = new ServiceMaker({ token : token, url : url });
+  try {
+    services = yield client.services.describe();
+  }
+  catch (error) {
+    handleError(error);
+  }
+
+  services = _.pluck(services, "type");
+  services = _.map(services, function (service) { return [ service ]; });
+  printTable("services", services);
+});
+
+let listTypes = co(function* () {
+  let client = createClient();
   let types;
 
   try {
     types = yield client.serviceTypes.describe();
   }
   catch (error) {
-    console.error("Unauthorized: maybe try `service-maker login`?");
-    process.exit(1);
+    handleError(error);
   }
 
-  printList("Available service types", types);
+  types = _.map(types, function (type) { return [ type ]; });
+  printTable("service types", types);
 });
 
 let login = co(function* () {
@@ -88,6 +116,11 @@ program
   .command("login")
   .description("Acquire a new access token.")
   .action(login);
+
+program
+  .command("services")
+  .description("List the available services.")
+  .action(listServices);
 
 program
   .command("types")
