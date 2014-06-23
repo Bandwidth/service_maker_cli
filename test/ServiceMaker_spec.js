@@ -2,6 +2,9 @@
 let expect       = require("chai").expect;
 let nock         = require("nock");
 let ServiceMaker = require("../lib/ServiceMaker");
+let sinon        = require("sinon");
+let url          = require("url");
+let utilities    = require("../lib/utilities");
 
 describe("A Service Maker client", function () {
   const ACCESS_TOKEN  = "atokenthingy";
@@ -127,6 +130,155 @@ describe("A Service Maker client", function () {
         expect(result, "service list").to.deep.equal(services);
       });
     });
+
+    describe("provisioning a service", function () {
+      const JOB_ID   = "ajob";
+      const JOB_PATH = "/jobs/" + JOB_ID;
+      const JOB_URL  = url.resolve(BASE_URL, JOB_PATH);
+
+      const SERVICE_ID   = "aservice";
+      const SERVICE_PATH = "/services/" + SERVICE_ID;
+      const SERVICE_URL  = url.resolve(BASE_URL, SERVICE_PATH);
+
+      function jobRequest (status) {
+        let job = { status : status };
+
+        if (status === "COMPLETE") {
+          job.service = {
+            id  : SERVICE_ID,
+            url : SERVICE_URL
+          };
+        }
+
+        return nock(BASE_URL)
+        .matchHeader("Authorization", AUTHORIZATION)
+        .get(JOB_PATH)
+        .reply(200, { status : "PENDING" })
+        .get(JOB_PATH)
+        .reply(200, job);
+      }
+
+      function provisionRequest () {
+        return nock(BASE_URL)
+        .matchHeader("Authorization", AUTHORIZATION)
+        .post("/services", { type : "demo" })
+        .reply(
+          202,
+          {
+            job : {
+              id  : JOB_ID,
+              url : JOB_URL
+            }
+          }
+        );
+      }
+
+      describe("without error", function () {
+        let result;
+        let waitStub;
+
+        before(function* () {
+          let job       = jobRequest("COMPLETE");
+          let provision = provisionRequest();
+
+          let service = nock(BASE_URL)
+          .matchHeader("Authorization", AUTHORIZATION)
+          .get(SERVICE_PATH)
+          .reply(
+            200,
+            {
+              type : "demo",
+              data : {
+                url : "http://example.com"
+              }
+            }
+          );
+
+          waitStub = sinon.stub(utilities, "wait", function* () {});
+          result   = yield client.services.create("demo");
+          job.done();
+          provision.done();
+          service.done();
+        });
+
+        after(function () {
+          waitStub.restore();
+        });
+
+        it("returns a description of the service", function () {
+          expect(result, "type").to.have.property("type", "demo");
+          expect(result, "data").to.have.property("data");
+          expect(result.data, "url").to.have.property("url", "http://example.com");
+        });
+      });
+
+      describe("with an error", function () {
+        let failure;
+        let waitStub;
+
+        before(function* () {
+          let job       = jobRequest("ERROR");
+          let provision = provisionRequest();
+
+          waitStub = sinon.stub(utilities, "wait", function* () {});
+
+          try {
+            yield client.services.create("demo");
+          }
+          catch (error) {
+            failure = error;
+          }
+
+          job.done();
+          provision.done();
+        });
+
+        after(function () {
+          waitStub.restore();
+        });
+
+        it("fails", function () {
+          expect(failure, "no error").to.be.an.instanceOf(Error);
+          expect(failure.message, "error message").to.match(/provisioning failed/i);
+        });
+      });
+
+      describe("that takes too long", function () {
+        let failure;
+        let nowStub;
+        let waitStub;
+
+        before(function* () {
+          let job       = jobRequest("PENDING");
+          let provision = provisionRequest();
+          let start     = Date.now();
+
+          waitStub = sinon.stub(utilities, "wait", function* () {
+            nowStub = sinon.stub(Date, "now").returns(start + 10 * 60 * 10000);
+          });
+
+          try {
+            yield client.services.create("demo");
+          }
+          catch (error) {
+            failure = error;
+          }
+
+          job.done();
+          provision.done();
+        });
+
+        after(function () {
+          nowStub.restore();
+          waitStub.restore();
+        });
+
+        it("times out", function () {
+          expect(failure, "no error").to.be.an.instanceOf(Error);
+          expect(failure.message, "error message").to.match(/timed out/i);
+        });
+      });
+    });
   });
 
   describe("with invalid basic credentials", function () {
@@ -166,6 +318,12 @@ describe("A Service Maker client", function () {
         yield client.services.describe();
       });
     });
+
+    it("fails to provision a service", function* () {
+      yield expectFailure(INVALID_CREDENTIALS, function* () {
+        yield client.services.create("demo");
+      });
+    });
   });
 
   describe("with an invalid access token", function () {
@@ -198,6 +356,14 @@ describe("A Service Maker client", function () {
 
       yield expectFailure(INVALID_ACCESS_TOKEN, function* () {
         yield client.services.describe();
+      });
+    });
+
+    it("fails to provision a service", function* () {
+      request = request.post("/services").reply(403);
+
+      yield expectFailure(INVALID_ACCESS_TOKEN, function* () {
+        yield client.services.create("demo");
       });
     });
   });

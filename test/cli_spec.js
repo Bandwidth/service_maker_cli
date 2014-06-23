@@ -1,10 +1,12 @@
 "use strict";
-let auth   = require("koa-basic-auth");
-let cli    = require("../lib/cli");
-let Config = require("../lib/Config");
-let expect = require("chai").expect;
-let helper = require("./helper");
-let nock   = require("nock");
+let auth         = require("koa-basic-auth");
+let cli          = require("../lib/cli");
+let Config       = require("../lib/Config");
+let expect       = require("chai").expect;
+let helper       = require("./helper");
+let nock         = require("nock");
+let ServiceMaker = require("../lib/ServiceMaker");
+let sinon        = require("sinon");
 
 describe("The command line client", function () {
 
@@ -153,35 +155,27 @@ describe("The command line library", function () {
   });
 
   describe("when authenticated", function () {
-    let restoreConfig;
-
-    before(function () {
-      restoreConfig = helper.configure({ token : "atoken" });
-    });
-
-    after(function () {
-      restoreConfig();
-    });
-
     describe("listing the available service types", function () {
       let output;
+      let stub;
 
       before(function* () {
-        let request = nock(cli.defaultUrl)
-        .get("/serviceTypes")
-        .reply(
-          200,
-          [
-            { type : "demo" },
-            { type : "host" },
-            { type : "mail" }
-          ]
-        );
+        let client = new ServiceMaker();
+
+        stub = sinon.stub(client.serviceTypes, "describe", function* () {
+          return [ "demo", "host", "mail" ];
+        });
 
         output = yield helper.captureOutput(function* () {
-          yield cli.run([ "node", "script", "types" ]);
+          yield cli.run(
+            function () { return client; },
+            [ "node", "script", "types" ]
+          );
         });
-        request.done();
+      });
+
+      after(function () {
+        stub.restore();
       });
 
       it("prints a list of service types", function () {
@@ -194,13 +188,13 @@ describe("The command line library", function () {
 
     describe("listing the available services", function () {
       let output;
+      let stub;
 
       before(function* () {
-        let request = nock(cli.defaultUrl)
-        .get("/services")
-        .reply(
-          200,
-          [
+        let client = new ServiceMaker();
+
+        stub = sinon.stub(client.services, "describe", function* () {
+          return [
             {
               type : "demo",
               data : {
@@ -213,13 +207,19 @@ describe("The command line library", function () {
                 domain : "example.com"
               }
             }
-          ]
-        );
+          ];
+        });
 
         output = yield helper.captureOutput(function* () {
-          yield cli.run([ "node", "script", "services" ]);
+          yield cli.run(
+            function () { return client; },
+            [ "node", "script", "services" ]
+          );
         });
-        request.done();
+      });
+
+      after(function () {
+        stub.restore();
       });
 
       it("prints a list of services", function () {
@@ -236,32 +236,26 @@ describe("The command line library", function () {
     const SUGGESTION   = /maybe try `service-maker login`/;
     const UNAUTHORIZED = /unauthorized/i;
 
-    let restoreConfig;
-
-    before(function* () {
-      restoreConfig = helper.configure({ token : "atoken" });
-    });
-
-    after(function* () {
-      restoreConfig();
-    });
-
     describe("listing the available service types", function () {
       let failure;
+      let stub;
 
       before(function* () {
-        let request = nock(cli.defaultUrl)
-        .get("/serviceTypes")
-        .reply(403);
+        let client = new ServiceMaker();
+
+        stub = sinon.stub(client.serviceTypes, "describe", function* () {
+          throw new Error("Invalid access token");
+        });
 
         try {
-          yield cli.run([ "node", "script", "types" ]);
+          yield cli.run(
+            function () { return client; },
+            [ "node", "script", "types" ]
+          );
         }
         catch (error) {
           failure = error;
         }
-
-        request.done();
       });
 
       it("exits with an error", function () {
@@ -273,20 +267,24 @@ describe("The command line library", function () {
 
     describe("listing the available services" ,function () {
       let failure;
+      let stub;
 
       before(function* () {
-        let request = nock(cli.defaultUrl)
-        .get("/services")
-        .reply(403);
+        let client = new ServiceMaker();
+
+        stub = sinon.stub(client.services, "describe", function* () {
+          throw new Error("Invalid access token");
+        });
 
         try {
-          yield cli.run([ "node", "script", "services" ]);
+          yield cli.run(
+            function () { return client; },
+            [ "node", "script", "services" ]
+          );
         }
         catch (error) {
           failure = error;
         }
-
-        request.done();
       });
 
       it("exits with an error", function* () {
