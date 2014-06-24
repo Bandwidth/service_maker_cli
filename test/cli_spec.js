@@ -6,7 +6,7 @@ let helper = require("./helper");
 
 describe("The command line client", function () {
 
-  describe("given an unknow command", function () {
+  describe("given an unknown command", function () {
     let result;
 
     before(function* () {
