@@ -29,6 +29,25 @@ CaptureStream.prototype = Object.create(stream.Writable.prototype);
 
 module.exports = {
 
+  captureOutput : function* (task) {
+    let output = new CaptureStream();
+    let stderr = process.stderr.write;
+    let stdout = process.stdout.write;
+
+    process.stderr.write = process.stdout.write = output.write.bind(output);
+
+    try {
+      yield task;
+    }
+    finally {
+      output.end();
+      process.stderr.write = stderr;
+      process.stdout.write = stdout;
+    }
+
+    return output.toString();
+  },
+
   configFile : path.join(__dirname, ".service_maker"),
 
   configure : function (options) {
