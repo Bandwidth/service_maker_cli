@@ -230,6 +230,40 @@ describe("The command line library", function () {
         expect(output, "mail service").not.to.match(/domain/);
       });
     });
+
+    describe("provisioning a service", function () {
+      let output;
+      let stub;
+
+      before(function* () {
+        let client = new ServiceMaker();
+
+        stub = sinon.stub(client.services, "create", function* (type) {
+          return {
+            type : type,
+            data : {
+              url : "http://example.com"
+            }
+          };
+        });
+
+        output = yield helper.captureOutput(function* () {
+          yield cli.run(
+            function () { return client; },
+            [ "node", "script", "service-create", "demo" ]
+          );
+        });
+      });
+
+      after(function () {
+        stub.restore();
+      });
+
+      it("prints a description of the new service", function () {
+        expect(output, "service type").to.match(/type\s+\S+\s+demo/i);
+        expect(output, "url").to.match(/url\s+\S+\s+http:\/\/example\.com/i);
+      });
+    });
   });
 
   describe("when not authenticated", function () {
@@ -256,6 +290,10 @@ describe("The command line library", function () {
         catch (error) {
           failure = error;
         }
+      });
+
+      after(function () {
+        stub.restore();
       });
 
       it("exits with an error", function () {
@@ -285,6 +323,43 @@ describe("The command line library", function () {
         catch (error) {
           failure = error;
         }
+      });
+
+      after(function () {
+        stub.restore();
+      });
+
+      it("exits with an error", function* () {
+        expect(failure, "no error").to.be.an.instanceOf(Error);
+        expect(failure.message, "error message").to.match(UNAUTHORIZED);
+        expect(failure.message, "error message").to.match(SUGGESTION);
+      });
+    });
+
+    describe("provisioning a service", function () {
+      let failure;
+      let stub;
+
+      before(function* () {
+        let client = new ServiceMaker();
+
+        stub = sinon.stub(client.services, "create", function* () {
+          throw new Error("Invalid access token");
+        });
+
+        try {
+          yield cli.run(
+            function () { return client; },
+            [ "node", "script", "service-create", "demo" ]
+          );
+        }
+        catch (error) {
+          failure = error;
+        }
+      });
+
+      after(function () {
+        stub.restore();
       });
 
       it("exits with an error", function* () {
