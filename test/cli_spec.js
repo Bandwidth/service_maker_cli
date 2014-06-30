@@ -1,12 +1,26 @@
 "use strict";
 let auth   = require("koa-basic-auth");
+let cli    = require("../lib/cli");
 let Config = require("../lib/Config");
 let expect = require("chai").expect;
 let helper = require("./helper");
+let nock   = require("nock");
 
 describe("The command line client", function () {
 
-  describe("given an unknow command", function () {
+  describe("executing successfully", function () {
+    let result;
+
+    before(function* () {
+      result = yield helper.run({ arguments : "--help" });
+    });
+
+    it("exits with a zero status code", function () {
+      expect(result, "bad exit code").to.have.property("status", 0);
+    });
+  });
+
+  describe("given an unknown command", function () {
     let result;
 
     before(function* () {
@@ -126,60 +140,67 @@ describe("The command line client", function () {
     });
   });
 
+});
+
+describe("The command line library", function () {
+
+  before(function () {
+    nock.disableNetConnect();
+  });
+
+  after(function () {
+    nock.enableNetConnect();
+  });
+
   describe("when authenticated", function () {
+    let restoreConfig;
+
+    before(function () {
+      restoreConfig = helper.configure({ token : "atoken" });
+    });
+
+    after(function () {
+      restoreConfig();
+    });
 
     describe("listing the available service types", function () {
-      let server;
-      let result;
-      let restore;
+      let output;
 
       before(function* () {
-        server = helper.createServer();
-        server.get("/serviceTypes", function* () {
-          this.body = [
+        let request = nock(cli.defaultUrl)
+        .get("/serviceTypes")
+        .reply(
+          200,
+          [
             { type : "demo" },
             { type : "host" },
             { type : "mail" }
-          ];
+          ]
+        );
 
-          this.status = 200;
+        output = yield helper.captureOutput(function* () {
+          yield cli.run([ "node", "script", "types" ]);
         });
-
-        yield server.start();
-        restore = helper.configure({ token : "atoken", url : server.url });
-
-        result = yield helper.run({ arguments : "types" });
-      });
-
-      after(function* () {
-        yield server.stop();
-        restore();
+        request.done();
       });
 
       it("prints a list of service types", function () {
-        let output = result.output();
-
         expect(output, "header").to.match(/service types/i);
         expect(output, "demo").to.match(/demo/);
         expect(output, "host").to.match(/host/);
         expect(output, "mail").to.match(/mail/);
       });
-
-      it("exits with a zero status code", function () {
-        expect(result, "exit status").to.have.property("status", 0);
-      });
     });
 
     describe("listing the available services", function () {
-      let restore;
-      let result;
-      let server;
+      let output;
 
       before(function* () {
-        server = helper.createServer();
-        server.get("/services", function* () {
-          this.status = 200;
-          this.body = [
+        let request = nock(cli.defaultUrl)
+        .get("/services")
+        .reply(
+          200,
+          [
             {
               type : "demo",
               data : {
@@ -192,31 +213,21 @@ describe("The command line client", function () {
                 domain : "example.com"
               }
             }
-          ];
+          ]
+        );
+
+        output = yield helper.captureOutput(function* () {
+          yield cli.run([ "node", "script", "services" ]);
         });
-
-        yield server.start();
-        restore = helper.configure({ token : "atoken", url : server.url });
-        result  = yield helper.run({ arguments : "services" });
-      });
-
-      after(function* () {
-        yield server.stop();
-        restore();
+        request.done();
       });
 
       it("prints a list of services", function () {
-        let output = result.output();
-
         expect(output, "header").to.match(/services/i);
         expect(output, "demo service").to.match(/demo/);
         expect(output, "demo service").not.to.match(/url/);
         expect(output, "mail service").to.match(/mail/);
         expect(output, "mail service").not.to.match(/domain/);
-      });
-
-      it("exits with a zero status code", function () {
-        expect(result, "exit status").to.have.property("status", 0);
       });
     });
   });
@@ -225,59 +236,63 @@ describe("The command line client", function () {
     const SUGGESTION   = /maybe try `service-maker login`/;
     const UNAUTHORIZED = /unauthorized/i;
 
-    let restore;
-    let server;
+    let restoreConfig;
 
     before(function* () {
-      server = helper.createServer();
-      server.use(function* () {
-        this.status = 403;
-      });
-
-      yield server.start();
-      restore = helper.configure({ token : "atoken", url : server.url });
+      restoreConfig = helper.configure({ token : "atoken" });
     });
 
     after(function* () {
-      yield server.stop();
-      restore();
+      restoreConfig();
     });
 
     describe("listing the available service types", function () {
-      let result;
+      let failure;
 
       before(function* () {
-        result = yield helper.run({ arguments : "types" });
+        let request = nock(cli.defaultUrl)
+        .get("/serviceTypes")
+        .reply(403);
+
+        try {
+          yield cli.run([ "node", "script", "types" ]);
+        }
+        catch (error) {
+          failure = error;
+        }
+
+        request.done();
       });
 
-      it("prints a failure message", function () {
-        let output = result.output();
-
-        expect(output, "authentication message").to.match(UNAUTHORIZED);
-        expect(output, "suggestion message").to.match(SUGGESTION);
-      });
-
-      it("exits with a non-zero status code", function () {
-        expect(result.status, "exit status").not.to.equal(0);
+      it("exits with an error", function () {
+        expect(failure, "no error").to.be.an.instanceOf(Error);
+        expect(failure.message, "error message").to.match(UNAUTHORIZED);
+        expect(failure.message, "error message").to.match(SUGGESTION);
       });
     });
 
     describe("listing the available services" ,function () {
-      let result;
+      let failure;
 
       before(function* () {
-        result = yield helper.run({ arguments : "services" });
+        let request = nock(cli.defaultUrl)
+        .get("/services")
+        .reply(403);
+
+        try {
+          yield cli.run([ "node", "script", "services" ]);
+        }
+        catch (error) {
+          failure = error;
+        }
+
+        request.done();
       });
 
-      it("prints a failure message", function () {
-        let output = result.output();
-
-        expect(output, "authentication message").to.match(UNAUTHORIZED);
-        expect(output, "suggestion message").to.match(SUGGESTION);
-      });
-
-      it("exits with a non-zero status code", function () {
-        expect(result.status, "exit status").not.to.equal(0);
+      it("exits with an error", function* () {
+        expect(failure, "no error").to.be.an.instanceOf(Error);
+        expect(failure.message, "error message").to.match(UNAUTHORIZED);
+        expect(failure.message, "error message").to.match(SUGGESTION);
       });
     });
   });
