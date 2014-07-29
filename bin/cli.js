@@ -3,7 +3,7 @@ let cli          = require("../lib/cli");
 let co           = require("co");
 let ServiceMaker = require("../lib/ServiceMaker");
 
-const DEFAULT_URL = "http://localhost:3000";
+const DEFAULT_URL = "https://dev-servicemaker.bwrnd.com";
 
 function clientFactory (config, options) {
   options = options ? Object.create(options) : {};

@@ -154,7 +154,7 @@ describe("The command line library", function () {
     nock.enableNetConnect();
   });
 
-  describe("when authenticated", function () {
+  describe.skip("when authenticated", function () {
     describe("listing the available service types", function () {
       let output;
       let stub;
