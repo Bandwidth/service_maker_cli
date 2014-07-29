@@ -6,6 +6,9 @@
   "scripts": {
     "test": "NODE_ENV=test node --harmony gulpfile.js"
   },
+  "bin":{
+    "sm_cli": "./bin/_sm_cli"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:bandwidthcom/service_maker_cli.git"
