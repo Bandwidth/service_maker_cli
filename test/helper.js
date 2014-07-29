@@ -8,7 +8,7 @@ let router = require("koa-router");
 let spawn  = require("child_process").spawn;
 let stream = require("stream");
 
-const client = path.join(__dirname, "..", "bin", "cli.js");
+const client = path.join(__dirname, "..", "bin", "sm_cli.js");
 
 function CaptureStream () {
   let buffer = [];
