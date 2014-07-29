@@ -278,7 +278,90 @@ describe("A Service Maker client", function () {
         });
       });
     });
+    describe("provisioning a service with type and provider name", function () {
+      const JOB_ID   = "ajob";
+      const JOB_PATH = "/jobs/" + JOB_ID;
+      const JOB_URL  = url.resolve(BASE_URL, JOB_PATH);
+
+      const SERVICE_ID   = "aservice";
+      const SERVICE_PATH = "/services/" + SERVICE_ID;
+      const SERVICE_URL  = url.resolve(BASE_URL, SERVICE_PATH);
+
+      function jobRequest (status) {
+        let job = { status : status };
+
+        if (status === "COMPLETE") {
+          job.service = {
+            id  : SERVICE_ID,
+            url : SERVICE_URL
+          };
+        }
+
+        return nock(BASE_URL)
+        //.matchHeader("Authorization", AUTHORIZATION)
+        .get(JOB_PATH)
+        .reply(200, { status : "PENDING" })
+        .get(JOB_PATH)
+        .reply(200, job);
+      }
+
+      function provisionRequest () {
+        return nock(BASE_URL)
+        //.matchHeader("Authorization", AUTHORIZATION)
+        .post("/services", { type : "demo", name: "name" })
+        .reply(
+          202,
+          {
+            job : {
+              id  : JOB_ID,
+              url : JOB_URL
+            }
+          }
+        );
+      }
+
+      describe("without error", function () {
+        let result;
+        let waitStub;
+
+        before(function* () {
+          let job       = jobRequest("COMPLETE");
+          let provision = provisionRequest();
+
+          let service = nock(BASE_URL)
+          //.matchHeader("Authorization", AUTHORIZATION)
+          .get(SERVICE_PATH)
+          .reply(
+            200,
+            {
+              type : "demo",
+              data : {
+                url : "http://example.com"
+              }
+            }
+          );
+
+          waitStub = sinon.stub(utilities, "wait", function* () {});
+          result   = yield client.services.create("demo", "name");
+          job.done();
+          provision.done();
+          service.done();
+        });
+
+        after(function () {
+          waitStub.restore();
+        });
+
+        it("returns a description of the service", function () {
+          expect(result, "type").to.have.property("type", "demo");
+          expect(result, "data").to.have.property("data");
+          expect(result.data, "url").to.have.property("url", "http://example.com");
+        });
+      });
+    });
   });
+
+
 
   describe.skip("with invalid basic credentials", function () {
     let client;
