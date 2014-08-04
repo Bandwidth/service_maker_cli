@@ -3,40 +3,45 @@ service_maker_cli
 
 > Command line client for the Service Maker service.
 
-== Usage
+## Usage
 ```
 sm_cli [options] [command]
 ```
-==== Commands
+#### Commands
   _login_
+  
      Acquire a new access token.
 
   _signup_
-     Register a new user and acquire a new access token
+  
+    Register a new user and acquire a new access token
 
   _services_
-     List the available services.
+  
+    List the available services.
 
   _set-url_
-     Change service_maker base url
+  
+    Change service_maker base url
 
   _service-create_
-     Create a new service instance.
+  
+    Create a new service instance.
+  
     Use options to pass parameters
+  
     `-c, --credential <name>=<value>` for credential parameter
+  
     `-o, --option <name>=<value>` for option
 
 
   _types_
      List the available service types.
+     Use `-v, --verbose` for verbose output.
 
 
-==== Options
 
-  `-h, --help`                       output usage information
-  `-v, --verbose`                    verbose output for command "types" only
-
-==== Examples
+#### Examples
 
 ```
     $ sm_cli types -v #detailed list of types and providers
