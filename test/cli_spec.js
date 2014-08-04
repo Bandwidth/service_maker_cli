@@ -154,7 +154,7 @@ describe("The command line library", function () {
     nock.enableNetConnect();
   });
 
-  describe.skip("when authenticated", function () {
+  describe("when authenticated", function () {
     describe("listing the available service types", function () {
       let output;
       let stub;
@@ -163,7 +163,11 @@ describe("The command line library", function () {
         let client = new ServiceMaker();
 
         stub = sinon.stub(client.serviceTypes, "describe", function* () {
-          return [ "demo", "host", "mail" ];
+          return [ 
+          {type: "demo", providers: ["demo"]}, 
+          {type: "host", providers: []}, 
+          {type: "mail", providers: []}
+          ];
         });
 
         output = yield helper.captureOutput(function* () {
