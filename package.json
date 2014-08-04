@@ -6,15 +6,15 @@
   "scripts": {
     "test": "NODE_ENV=test node --harmony gulpfile.js"
   },
-  "bin":{
+  "bin": {
     "sm_cli": "./bin/_sm_cli"
   },
   "repository": {
     "type": "git",
     "url": "git@github.com:bandwidthcom/service_maker_cli.git"
   },
-  "author": "Jeff Jagoda <jjagoda@bandwidth.com>",
-  "license": "Proprietary",
+  "author": "Jeff Jagoda <jjagoda@bandwidth.com>, avbel <belchikovs@gmail.com>",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/bandwidthcom/service_maker_cli/issues"
   },
@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "chai": "^1.9.1",
+    "co-body": "0.0.2",
     "co-mocha": "0.0.4",
     "gulp": "^3.8.0",
     "gulp-jshint": "^1.6.3",

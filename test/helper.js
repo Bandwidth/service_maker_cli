@@ -95,7 +95,6 @@ module.exports = {
     let deferred = q.defer();
     let node     = process.execPath;
     let nodeArgs = process.execArgv.concat(client, options.arguments);
-
     let stdout  = new CaptureStream();
     let child   = spawn(node, nodeArgs, { stdio : "pipe" });
     let prompts = Array.isArray(options.prompts) ? options.prompts.slice() : [];
@@ -109,7 +108,6 @@ module.exports = {
     // Check for prompts to the user and simulate user input.
     child.stdout.on("data", function () {
       let buffer = stdout.toString();
-
       for (let i = 0; i < prompts.length; i++) {
         if (buffer.match(prompts[i].pattern)) {
           child.stdin.write(prompts[i].value + "\n");
