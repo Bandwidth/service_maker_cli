@@ -8,36 +8,36 @@ service_maker_cli
 sm_cli [options] [command]
 ```
 #### Commands
-  _login_
+_login_
   
-     Acquire a new access token.
+Acquire a new access token.
 
-  _signup_
+_signup_
   
-    Register a new user and acquire a new access token
+Register a new user and acquire a new access token
 
-  _services_
+_services_
   
-    List the available services.
+List the available services.
 
-  _set-url_
+_set-url_
   
-    Change service_maker base url
+Change service_maker base url
 
-  _service-create_
+_service-create_
   
-    Create a new service instance.
+Create a new service instance.
   
-    Use options to pass parameters
-  
-    `-c, --credential <name>=<value>` for credential parameter
-  
-    `-o, --option <name>=<value>` for option
+Use options to pass parameters
+
+`-c, --credential <name>=<value>` for credential parameter
+
+`-o, --option <name>=<value>` for option
 
 
-  _types_
-     List the available service types.
-     Use `-v, --verbose` for verbose output.
+_types_
+List the available service types.
+Use `-v, --verbose` for verbose output.
 
 
 
