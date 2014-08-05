@@ -3,31 +3,34 @@ service_maker_cli
 
 > Command line client for the Service Maker service.
 
+[![Build](https://travis-ci.org/bandwidthcom/service_maker_cli.png)](https://travis-ci.org/bandwidthcom/service_maker_cli)
+[![Dependencies](https://david-dm.org/bandwidthcom/service_maker_cli.png)](https://david-dm.org/bandwidthcom/service_maker_cli)
+
 ## Usage
 ```
 sm_cli [options] [command]
 ```
 #### Commands
 _login_
-  
+
 Acquire a new access token.
 
 _signup_
-  
+
 Register a new user and acquire a new access token
 
 _services_
-  
+
 List the available services.
 
 _set-url_
-  
+
 Change service_maker base url
 
 _service-create_
-  
+
 Create a new service instance.
-  
+
 Use options to pass parameters
 
 `-c, --credential <name>=<value>` for credential parameter
