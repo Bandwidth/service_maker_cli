@@ -12,7 +12,6 @@ function clientFactory (config, options) {
   if (!("username" in options) && !("password" in options)) {
     options.token = config.get("token");
   }
-
   return new ServiceMaker(options);
 }
 

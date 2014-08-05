@@ -1,5 +1,6 @@
 "use strict";
 let auth         = require("koa-basic-auth");
+let coBody       = require("co-body"); 
 let cli          = require("../lib/cli");
 let Config       = require("../lib/Config");
 let expect       = require("chai").expect;
@@ -51,6 +52,27 @@ describe("The command line client", function () {
 
     it("displays the usage information", function () {
       expect(result.output(), "usage message").to.match(/usage:/i);
+    });
+  });
+
+  describe("changing service_maker url", function () {
+    let restore;
+    before(function* () {
+      restore = helper.configure({ url : "http://www.google.com" });
+      yield helper.run({
+        arguments : "set-url",
+        prompts   : [
+          { pattern : /url: $/, value : "http://localhost/sm" }
+        ]
+      });
+    });
+    after(function(){
+      restore();
+    });
+
+    it("changes url in config file", function*(){
+      let config = new Config(helper.configFile);
+      expect(config.get("url")).to.equal("http://localhost/sm");
     });
   });
 
@@ -142,6 +164,102 @@ describe("The command line client", function () {
     });
   });
 
+  describe("registerng new user", function () {
+    let server;
+
+    before(function* () {
+      server = helper.createServer();
+      server.post("/signup", function* () {
+        let form = yield coBody(this);
+        if(form.username === "username" && 
+          form.password === "password" && 
+          form.repeatPassword === "password"){
+          this.body   = { token : "atokenthingy" };
+          this.status = 200;
+          return;
+        }
+        this.throw(500, "Invalid auth data");
+      });
+
+      yield server.start();
+    });
+
+    after(function* () {
+      yield server.stop();
+    });
+
+    describe("with valid credentials", function () {
+      let result;
+      let restore;
+
+      before(function* () {
+        restore = helper.configure({ url : server.url });
+
+        result = yield helper.run({
+          arguments : "signup",
+          prompts   : [
+            { pattern : /username: $/, value : "username" },
+            { pattern : /password: $/, value : "password" },
+            { pattern : /repeat password: $/, value : "password" }
+          ]
+        });
+      });
+
+      after(function () {
+        restore();
+      });
+
+      it("creates a user token in the config file", function () {
+        let config = new Config(helper.configFile);
+        expect(config.get("token"), "token value").to.equal("atokenthingy");
+      });
+
+      it("prints a success message", function () {
+        expect(result.output(), "output").to.match(/Successfully authenticated./);
+      });
+
+      it("exits with a zero status code", function () {
+        expect(result, "exit status").to.have.property("status", 0);
+      });
+    });
+
+    describe("with invalid credentials", function () {
+      let result;
+      let restore;
+
+      before(function* () {
+        restore = helper.configure({ url : server.url });
+
+        result = yield helper.run({
+          arguments : "signup",
+          prompts   : [
+            { pattern : /username: $/, value : "bad" },
+            { pattern : /password: $/, value : "credentials" },
+            { pattern : /repeat password: $/, value : "password1" }
+          ]
+        });
+      });
+
+      after(function () {
+        restore();
+      });
+
+      it("does not update the config file", function () {
+        let config = new Config(helper.configFile);
+
+        expect(config.get("token"), "token value").not.to.exist;
+      });
+
+      it("prints a failure message", function () {
+        expect(result.output(), "output").to.match(/Failed to authenticate./);
+      });
+
+      it("exits with a non-zero status code", function () {
+        expect(result.status, "exit status").not.to.equal(0);
+      });
+    });
+  });
+
 });
 
 describe("The command line library", function () {
@@ -163,7 +281,11 @@ describe("The command line library", function () {
         let client = new ServiceMaker();
 
         stub = sinon.stub(client.serviceTypes, "describe", function* () {
-          return [ "demo", "host", "mail" ];
+          return [ 
+          {type: "demo", providers: ["demo"]}, 
+          {type: "host", providers: []}, 
+          {type: "mail", providers: []}
+          ];
         });
 
         output = yield helper.captureOutput(function* () {
