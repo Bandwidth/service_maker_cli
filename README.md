@@ -1,3 +1,5 @@
+# ⚠️ DEPRECATED⚠️ 
+
 service_maker_cli
 =================
 
